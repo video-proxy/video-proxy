@@ -1,31 +1,34 @@
 export default async function handler(req, res) {
   const { token } = req.query;
-  if (!token) return res.status(400).send("Missing token");
+  if (!token) return res.status(400).send("❌ Missing token");
 
   try {
-    const url = Buffer.from(token, "base64").toString("utf-8");
-    const allowedHosts = ["moji.abcdxzy.xyz"];
+    const url = Buffer.from(token, 'base64').toString('utf-8');
+    const allowedHosts = ['moji.abcdxzy.xyz'];
+
     const { hostname } = new URL(url);
     if (!allowedHosts.includes(hostname)) {
-      return res.status(403).send("Host not allowed");
+      return res.status(403).send("❌ Host not allowed");
     }
 
+    const range = req.headers.range; // รองรับ video seek
     const response = await fetch(url, {
       headers: {
-        Referer: "https://moji.abcdxzy.xyz", // 👈 สำคัญมาก
-        Origin: "https://moji.abcdxzy.xyz",
-        "User-Agent": req.headers['user-agent'] || "Mozilla/5.0",
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive"
+        'Referer': 'https://moji.abcdxzy.xyz',
+        'Origin': 'https://moji.abcdxzy.xyz',
+        'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0',
+        ...(range ? { Range: range } : {})
       }
     });
 
-    const contentType = response.headers.get("content-type") || "application/octet-stream";
-    res.setHeader("Content-Type", contentType);
-    const buffer = await response.arrayBuffer();
-    res.send(Buffer.from(buffer));
+    res.status(response.status);
+    for (const [key, value] of response.headers.entries()) {
+      res.setHeader(key, value);
+    }
+
+    response.body.pipe(res);
   } catch (err) {
-    res.status(500).send("Error fetching video");
+    console.error(err);
+    res.status(500).send("❌ Proxy failed to stream.");
   }
 }
