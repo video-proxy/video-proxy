@@ -2,35 +2,76 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>Video Player with HLS.js</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Anime Player</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      padding: 10px;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      border: 2px solid #444;
+      border-radius: 8px;
+      background: #000;
+    }
+    .message {
+      text-align: center;
+      margin-top: 10px;
+      color: #f55;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h2>Video Player (HLS.js)</h2>
-  <video id="video" controls autoplay width="100%" playsinline></video>
+  <div class="container">
+    <video id="video" controls autoplay playsinline></video>
+    <div class="message" id="message"></div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-    if (!token) {
-      document.body.innerHTML = "<p style='color:red;'>❌ Missing token parameter</p>";
-    } else {
-      const video = document.getElementById("video");
-      const videoSrc = `/api/proxy?token=${encodeURIComponent(token)}`;
+    const video = document.getElementById('video');
+    const message = document.getElementById('message');
 
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(videoSrc);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.ERROR, function(event, data) {
-          console.error("HLS error", data);
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        // Safari หรือ iOS เล่นได้เลย
-        video.src = videoSrc;
-      } else {
-        document.body.innerHTML = "<p style='color:red;'>เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ HLS</p>";
-      }
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    const videoSrc = getQueryParam('url');
+
+    if (!videoSrc) {
+      message.textContent = '❌ ไม่พบพารามิเตอร์วิดีโอ (url)';
+    } else if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(videoSrc);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        message.textContent = "⚠️ ไม่สามารถโหลดวิดีโอได้ หรือวิดีโอไม่อนุญาตให้ฝัง";
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoSrc;
+      video.addEventListener('loadedmetadata', () => video.play());
+    } else {
+      message.textContent = '❌ เบราว์เซอร์ของคุณไม่รองรับ HLS (.m3u8)';
     }
   </script>
 </body>
