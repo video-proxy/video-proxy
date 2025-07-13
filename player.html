@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Proxy Player</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    html, body {
+      margin: 0;
+      background: #000;
+      height: 100%;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<video id="video" controls autoplay></video>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) {
+    alert("ไม่มี token");
+    throw new Error("Missing token");
+  }
+
+  const video = document.getElementById("video");
+  const proxyUrl = `/api/proxy?token=${encodeURIComponent(token)}`;
+
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(proxyUrl);
+    hls.attachMedia(video);
+  } else {
+    video.src = proxyUrl;
+  }
+</script>
+
+</body>
+</html>
