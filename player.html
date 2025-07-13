@@ -2,27 +2,35 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>Player via Proxy</title>
+  <title>Video Player with HLS.js</title>
 </head>
 <body>
-  <h2>Video Player (Proxy Mode)</h2>
+  <h2>Video Player (HLS.js)</h2>
+  <video id="video" controls autoplay width="100%" playsinline></video>
 
-  <video id="video" controls autoplay width="100%">
-    <source id="src" type="video/mp4">
-    Browser ของคุณไม่รองรับ video tag
-  </video>
-
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    // ดึงค่าจาก query string เช่น ?token=...
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get("token");
-
-    if (token) {
-      const proxyUrl = `/api/proxy?token=${encodeURIComponent(token)}`;
-      document.getElementById("src").src = proxyUrl;
-      document.getElementById("video").load();
-    } else {
+    if (!token) {
       document.body.innerHTML = "<p style='color:red;'>❌ Missing token parameter</p>";
+    } else {
+      const video = document.getElementById("video");
+      const videoSrc = `/api/proxy?token=${encodeURIComponent(token)}`;
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          console.error("HLS error", data);
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // Safari หรือ iOS เล่นได้เลย
+        video.src = videoSrc;
+      } else {
+        document.body.innerHTML = "<p style='color:red;'>เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ HLS</p>";
+      }
     }
   </script>
 </body>
